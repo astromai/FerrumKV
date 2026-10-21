@@ -1,0 +1,8 @@
+[package]
+name = "ferrum_kv"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# "full" activa: runtime multi-hilo, red (TCP), I/O, sync, señales y macros.
+tokio = { version = "1", features = ["full"] }
