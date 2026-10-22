@@ -5,12 +5,19 @@ pub enum Command {
     Ping(Option<String>),
     DBSIZE,
     QUIT,
+    /// Almacena una clave asociada a un valor
+    /// Todo el texto después de la key se toma como el valor, aceptando en este los espacios en
+    /// blanco
     SET { key: String, val: String },
+    /// Obtiene el valor de una key
     GET(String),
+    /// Elimina una key con su valor
     DEL(String),
+    /// Incrementa de forma atómica el valor numérico de una key
     INCR(String),
 }
 
+/// Errores tipados según la especificación del protocolo
 pub enum ParseError {
     EmptyCommand,
     UnknownCommand(String),
