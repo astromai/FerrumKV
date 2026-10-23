@@ -32,8 +32,8 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ParseError::EmptyCommand => write!(f, "[ERROR] empty command"),
-            ParseError::UnknownCommand => write!(f, "[ERROR] unknown command '{id}'"),
-            ParseError::WrongNumberOfArguments {command, expected, got} => write!(f, "[ERROR] wrong number of arguments for '{command}'; command (expected {expected}, got {got})'"),
+            ParseError::UnknownCommand(id) => write!(f, "[ERROR] unknown command '{id}'"),
+            ParseError::WrongNumberOfArguments {command, expected, got} => write!(f, "[ERROR] wrong number of arguments for '{command}'; command (expected {expected}, got {got})"),
         }
     }
 }
@@ -61,7 +61,7 @@ impl Command {
                         if msg.is_empty() {
                             Ok(Command::Ping(None))
                         } else {
-                            Ok(Command::Ping(msg.to_string()))
+                            Ok(Command::Ping(Some(msg.to_string())))
                         }
                     }
                 }
@@ -70,7 +70,7 @@ impl Command {
                 match args {
                 Some(extra) if extra.split_whitespace().count() > 0{
                     Err(ParseError::WrongNumberOfArguments {
-                        command: upper_id,
+                        command: upper_id.clone(),
                         expected: 0,
                         got: extra.split_whitespace().count(),
                     })
@@ -82,7 +82,7 @@ impl Command {
                 match args {
                 Some(extra) if extra.split_whitespace().count() > 0{
                     Err(ParseError::WrongNumberOfArguments {
-                        command: upper_id,
+                        command: upper_id.clone(),
                         expected: 0,
                         got: extra.split_whitespace().count(),
                     })
@@ -93,12 +93,12 @@ impl Command {
             "SET" => {
                 match args {
                         None => Err(ParseError::WrongNumberOfArguments {
-                        command: upper_id,
+                        command: upper_id.clone(),
                         expected: 2,
                         got: 0,
                         }),
                         Some(text) if text.is_empty() => Err(ParseError::WrongNumberOfArguments {
-                        command: upper_id,
+                        command: upper_id.clone(),
                         expected: 2,
                         got: 0,
                         }),
@@ -107,7 +107,7 @@ impl Command {
                                 let valuee = value.trim_start();
                                 if valuee.is_empty() {
                                     Err(ParseError::WrongNumberOfArguments {
-                                    command: upper_id,
+                                    command: upper_id.clone(),
                                     expected: 2,
                                     got: 1,
                                     })
@@ -119,7 +119,7 @@ impl Command {
                                 }
                             }
                             None => Err(ParseError::WrongNumberOfArguments {
-                            command: upper_id,
+                            command: upper_id.clone(),
                             expected: 2,
                             got: 1,
                             }),
