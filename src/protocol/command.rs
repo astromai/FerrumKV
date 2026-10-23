@@ -91,7 +91,41 @@ impl Command {
                 }
             }
             "SET" => {
-                todo!();
+                match args {
+                        None => Err(ParseError::WrongNumberOfArguments {
+                        command: upper_id,
+                        expected: 2,
+                        got: 0,
+                        }),
+                        Some(text) if text.is_empty() => Err(ParseError::WrongNumberOfArguments {
+                        command: upper_id,
+                        expected: 2,
+                        got: 0,
+                        }),
+                        Some(text) => match text.split_once(char::is_whitespace) {
+                            Some((key,value)) => {
+                                let valuee = value.trim_start();
+                                if valuee.is_empty() {
+                                    Err(ParseError::WrongNumberOfArguments {
+                                    command: upper_id,
+                                    expected: 2,
+                                    got: 1,
+                                    })
+                                } else {
+                                    Ok(Command::SET {
+                                        key: key.to_string(),
+                                        val: valuee.to_string(),
+                                    })
+                                }
+                            }
+                            None => Err(ParseError::WrongNumberOfArguments {
+                            command: upper_id,
+                            expected: 2,
+                            got: 1,
+                            }),
+                        }
+                    }
+                }
             }
             "GET" => {
                 todo!();
