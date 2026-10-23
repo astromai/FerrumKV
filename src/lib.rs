@@ -6,6 +6,7 @@
 //! - `db`: estado compartido en memoria, seguro entre tareas.
 
 pub mod network;
+pub mod protocol;
 pub mod server;
 pub mod storage;
 
