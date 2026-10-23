@@ -33,7 +33,7 @@ impl fmt::Display for ParseError {
         match self {
             ParseError::EmptyCommand => write!(f, "[ERROR] empty command"),
             ParseError::UnknownCommand(id) => write!(f, "[ERROR] unknown command '{id}'"),
-            ParseError::WrongNumberOfArguments {command, expected, got} => write!(f, "[ERROR] wrong number of arguments for '{command}'; command (expected {expected}, got {got})"),
+            ParseError::WrongNumberOfArguments {command, expected, got} => write!(f, "[ERROR] wrong number of arguments for '{command}' command (expected {expected}, got {got})")
         }
     }
 }
@@ -128,15 +128,53 @@ impl Command {
                 }
             }
             "GET" => {
-                todo!();
+                let key = parse_single(&upper_id, args)?;
+                Ok(Command::GET(key))
             }
             "DEL" => {
-                todo!();
+                let key = parse_single(&upper_id, args)?;
+                Ok(Command::DEL(key))
             }
             "INCR" => {
-                todo!();
+                let key = parse_single(&upper_id, args)?;
+                Ok(Command::INCR(key))
             }
             _ => Err(ParseError::UnknownCommand(upper_id.to_string())),
         }
     }
+}
+
+fn parse_single(cmd: &str, args:Option<&str>) -> Result<String, ParseError> {
+    let raw_args = match args {
+        Some(text) if !text.is_empty() => text,
+        _ => {
+            return Err(ParseError::WrongNumberOfArguments {
+                command: cmd.to_string(),
+                expected: 1,
+                got: 0,
+            });
+        }
+    };
+
+    let mut parts = raw_args.split_whitespace();
+    let first = match parts.next() {
+        Some(arg) => arg,
+        None => {
+            return Err(ParseError::WrongNumberOfArguments {
+                command: cmd.to_string(),
+                expected: 1,
+                got: 0,
+            });
+        }
+    };
+
+    if parts.next().is_some() {
+        let total = 2 + parts.count();
+        return Err(ParseError::WrongNumberOfArguments {
+            command: cmd.to_string(),
+            expected: 1,
+            got: total,
+        });
+    }
+    Ok(first.to_string())
 }
