@@ -91,15 +91,29 @@ Las dependencias entre módulos van en una sola dirección: `server` usa `networ
 
 ## Decisiones de diseño
 
-### Concurrencia: Tokio en lugar de threads
+### Concurrencia
 
-Se evaluaron dos alternativas: programación asíncrona con Tokio y un thread del sistema operativo por cliente. Se eligió **Tokio** por las siguientes razones:
+El servidor usa **Tokio**, un runtime asíncrono para Rust. Esto es porque las operaciones sobre el `HashMap` toman nanosegundos, y el resto del tiempo el servidor espera datos de los clientes. Cuando hay muchos clientes a la vez que la mayor parte del tiempo esperan datos de red, un runtime asíncrono es la mejor arquitectura porque una tarea suspendida no consume CPU. Redis sigue el mismo principio: usa un event loop (epoll), el modelo que Tokio implementa internamente.
 
-- **El trabajo es mayormente espera de red.** Las operaciones sobre el `HashMap` toman nanosegundos; el resto del tiempo el servidor espera datos de los clientes. En ese escenario, una tarea asíncrona suspendida no consume CPU.
-- **Escalabilidad.** Cada thread reserva un stack de varios MB y los cambios de contexto pasan por el kernel. Una tarea de Tokio pesa unos pocos KB, por lo que miles de conexiones caben en un puñado de threads.
-- **Similitud con Redis.** Redis usa un event loop (epoll) de un solo hilo, que es el mismo modelo que Tokio implementa internamente.
+#### Alternativas evaluadas
 
-Los threads siguen siendo una opción válida para pocos clientes y son más simples de leer, pero no escalan igual.
+| Alternativa | Ventajas | Desventajas para este proyecto |
+|---|---|---|
+| Threads de `std` (uno por cliente) | Sin dependencias, simple de leer y depurar | Cada thread reserva un stack de varios MB y los cambios de contexto pasan por el kernel; escala mal con miles de clientes |
+| Thread pool | Acota la cantidad de threads | Un cliente lento ocupa un thread completo mientras espera; se termina reinventando parte de un runtime asíncrono |
+| smol | Liviano, compila rápido, pocas dependencias | Ecosistema y documentación mucho menores, menos herramientas incluidas |
+
+#### Motivos de la elección
+
+- **Su runtime multi-hilo reparte el trabajo automáticamente.** Las tareas de los clientes se distribuyen entre todos los núcleos, y un thread sin trabajo toma tareas de otro (*work-stealing*). El servidor aprovecha la CPU completa sin cambiar el código.
+- **Escalabilidad.** Una tarea de Tokio pesa unos pocos KB, por lo que miles de conexiones caben en un puñado de threads.
+- **Documentación directamente aplicable.** El tutorial oficial de Tokio construye un "mini-redis", por lo que hay una referencia para contrastar decisiones de diseño de este proyecto.
+
+#### Costos asumidos
+
+- Agrega bastantes dependencias y aumenta el tiempo de compilación.
+- Obliga a escribir código `async`, que tiene sus propias reglas (por ejemplo, no mantener un `std::sync::Mutex` tomado a través de un `.await`).
+- Con pocos clientes, la ganancia frente a threads es pequeña.
 
 ### Estado compartido: `Arc<Mutex<HashMap>>`
 
