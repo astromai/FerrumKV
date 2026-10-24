@@ -28,5 +28,37 @@ impl Db {
         self.len() == 0
     }
 
-    // En el siguiente paso aquí agregaremos: set, get, del, incr.
+    /// Guarda o reemplaza el valor de una clave.
+    pub fn set(&self, key: &str, value: &str) {
+        self.inner
+            .lock()
+            .unwrap()
+            .insert(key.to_string(), value.to_string());
+    }
+
+    /// Devuelve una copia del valor para liberar el candado antes de responder.
+    pub fn get(&self, key: &str) -> Option<String> {
+        self.inner.lock().unwrap().get(key).cloned()
+    }
+
+    /// Elimina la clave e indica si estaba almacenada.
+    pub fn del(&self, key: &str) -> bool {
+        self.inner.lock().unwrap().remove(key).is_some()
+    }
+
+    /// Incrementa bajo un único candado sin modificar valores inválidos.
+    pub fn incr(&self, key: &str) -> Result<i64, &'static str> {
+        let mut entries = self.inner.lock().unwrap();
+        let value = match entries.get(key) {
+            Some(value) => value
+                .parse::<i64>()
+                .ok()
+                .and_then(|number| number.checked_add(1)),
+            None => Some(1),
+        }
+        .ok_or("value is not an integer or out of range")?;
+
+        entries.insert(key.to_string(), value.to_string());
+        Ok(value)
+    }
 }
